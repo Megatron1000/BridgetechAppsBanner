@@ -5,19 +5,27 @@ import PackageDescription
 
 let package = Package(
     name: "BridgetechAppsBanner",
+    defaultLocalization: "en",
+    platforms: [
+        .macOS(.v11),
+        .tvOS(.v16),
+        .iOS(.v16),
+    ],
     products: [
-        // Products define the executables and libraries a package produces, making them visible to other packages.
         .library(
             name: "BridgetechAppsBanner",
             targets: ["BridgetechAppsBanner"]),
     ],
     targets: [
-        // Targets are the basic building blocks of a package, defining a module or a test suite.
-        // Targets can depend on other targets in this package and products from dependencies.
         .target(
-            name: "BridgetechAppsBanner"),
-        .testTarget(
-            name: "BridgetechAppsBannerTests",
-            dependencies: ["BridgetechAppsBanner"]),
+            name: "BridgetechAppsBanner",
+            resources: [
+                .process("whitenoise.png"),
+                .process("off.png"),
+                .process("bloodpressure.png"),
+                .process("cluedup.png"),
+                .process("perfectpitch.png"),
+                .process("puzzle.png"),
+            ]),
     ]
 )

@@ -118,7 +118,7 @@ public final class BannerController: NSObject, ObservableObject, @preconcurrency
             let storeViewController = SKStoreProductViewController()
             storeViewController.delegate = self
             
-            let parameters = [SKStoreProductParameterITunesItemIdentifier: currentAppAd]
+            let parameters = [SKStoreProductParameterITunesItemIdentifier: currentAppAd.appStoreId]
             
             storeViewController.loadProduct(withParameters: parameters) { (loaded, error) in
                 if loaded {

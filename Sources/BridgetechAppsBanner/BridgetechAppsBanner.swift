@@ -32,7 +32,7 @@ struct BridgetechAppsBannerContent : View {
 
 public struct BridgetechAppsBannerContainer : View {
     
-    public struct Config {
+    public struct Config: Sendable {
         public init(backgroundColor: Color, foregroundColor: Color, shadowRadius: CGFloat, cornerRadius: CGFloat) {
             self.backgroundColor = backgroundColor
             self.foregroundColor = foregroundColor
@@ -74,12 +74,8 @@ public struct BridgetechAppsBannerContainer : View {
                 .clipShape(RoundedRectangle(cornerRadius: config.cornerRadius, style: .continuous))
                 .shadow(radius: config.shadowRadius)
                 .onTapGesture {
-                    UIApplication.shared.open(currentAppAd.appStoreURL,
-                                              options: [:]) { success in
-                        if success {
-                            onAppAdTap?(currentAppAd)
-                        }
-                    }
+                    onAppAdTap?(currentAppAd)
+                    bannerController.handleBannerTapped()
                 }
                 .animation(.default, value: bannerController.currentAppAd)
                 .onChange(of: bannerController.currentAppAd, perform: { value in

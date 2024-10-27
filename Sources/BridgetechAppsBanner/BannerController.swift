@@ -6,8 +6,12 @@
 //
 
 import Foundation
+import UIKit
+import OSLog
+import StoreKit
 
-public final class BannerController: ObservableObject {
+@MainActor
+public final class BannerController: NSObject, ObservableObject, @preconcurrency SKStoreProductViewControllerDelegate {
     
     @Published var currentAppAd: AppAd?
     
@@ -15,6 +19,8 @@ public final class BannerController: ObservableObject {
     public let adChangeInterval: TimeInterval
     
     private var timer: Timer?
+    
+    private var presentationInProgress: Bool = false
     
     private let allAppAds: Set<AppAd> = [
         AppAd(bundleId: "com.bridgetech.WhiteNoise",
@@ -51,6 +57,8 @@ public final class BannerController: ObservableObject {
     
     private var unshownAppAds: Set<AppAd> = []
     
+    private weak var presentingViewController: UIViewController?
+    
     @Published public var enabled: Bool = true {
         didSet {
             if enabled {
@@ -66,6 +74,7 @@ public final class BannerController: ObservableObject {
     public init(excludedAppBundleIds: Set<String> = [], adChangeInterval: TimeInterval = 30) {
         self.excludedAppBundleIds = excludedAppBundleIds
         self.adChangeInterval = adChangeInterval
+        super.init()
         showNextAppAd()
         startAdChangeTimer()
     }
@@ -75,7 +84,9 @@ public final class BannerController: ObservableObject {
                                 repeats: true,
                                 block: { [weak self] _ in
             guard let self else { return }
-            self.showNextAppAd()
+            Task {
+                await self.showNextAppAd()
+            }
         })
     }
     
@@ -86,6 +97,63 @@ public final class BannerController: ObservableObject {
         let nextAppAd = unshownAppAds.randomElement()!
         unshownAppAds.remove(nextAppAd)
         currentAppAd = nextAppAd
+    }
+    
+    func handleBannerTapped() {
+        Logger.standard.debug("Banner tapped")
+        
+        guard presentationInProgress == false else {
+            Logger.standard.warning("Ignoring banner tap as presentation is already in progress")
+            return
+        }
+        
+        guard let currentAppAd else {
+            Logger.standard.warning("Banner was tapped but there's no current app.")
+            return
+        }
+        
+        presentationInProgress = true
+
+        if let topViewController = TopViewControllerFinder.topMostViewController() {
+            let storeViewController = SKStoreProductViewController()
+            storeViewController.delegate = self
+            
+            let parameters = [SKStoreProductParameterITunesItemIdentifier: currentAppAd]
+            
+            storeViewController.loadProduct(withParameters: parameters) { (loaded, error) in
+                if loaded {
+                    topViewController.present(storeViewController, animated: true, completion: {
+                        self.presentationInProgress = false
+                    })
+                    self.presentingViewController = topViewController
+                } else if let error {
+                    Logger.standard.error("Error loading App Store page: \(error.localizedDescription)")
+                    self.presentationInProgress = false
+                }
+            }
+        }
+        else {
+            UIApplication.shared.open(currentAppAd.appStoreURL,
+                                      options: [:]) { success in
+                if success {
+                    Logger.standard.debug("Opened externally \(currentAppAd.bundleId)")
+                } else {
+                    Logger.standard.error("Failed to open externally \(currentAppAd.bundleId)")
+                }
+                self.presentationInProgress = false
+            }
+        }
+
+    }
+    
+    // MARK: SKStoreProductViewControllerDelegate
+    
+    public func productViewControllerDidFinish(_ viewController: SKStoreProductViewController) {
+        guard let presentingViewController else {
+            Logger.standard.error("Lost presenting view controller somehow")
+            return
+        }
+        presentingViewController.dismiss(animated: true, completion: nil)
     }
     
 }

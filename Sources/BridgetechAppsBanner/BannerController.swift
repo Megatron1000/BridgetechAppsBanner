@@ -128,22 +128,26 @@ public final class BannerController: NSObject, ObservableObject, @preconcurrency
                     self.presentingViewController = topViewController
                 } else if let error {
                     Logger.standard.error("Error loading App Store page: \(error.localizedDescription)")
-                    self.presentationInProgress = false
+                    self.openExternally(appAd: currentAppAd)
                 }
             }
         }
         else {
-            UIApplication.shared.open(currentAppAd.appStoreURL,
-                                      options: [:]) { success in
-                if success {
-                    Logger.standard.debug("Opened externally \(currentAppAd.bundleId)")
-                } else {
-                    Logger.standard.error("Failed to open externally \(currentAppAd.bundleId)")
-                }
-                self.presentationInProgress = false
-            }
+            openExternally(appAd: currentAppAd)
         }
 
+    }
+    
+    private func openExternally(appAd: AppAd) {
+        UIApplication.shared.open(appAd.appStoreURL,
+                                  options: [:]) { success in
+            if success {
+                Logger.standard.debug("Opened externally \(appAd.bundleId)")
+            } else {
+                Logger.standard.error("Failed to open externally \(appAd.bundleId)")
+            }
+            self.presentationInProgress = false
+        }
     }
     
     // MARK: SKStoreProductViewControllerDelegate
